@@ -1,0 +1,27 @@
+.logo-navbar{
+    width: 200px;
+    height: auto;
+}
+
+.btn-round {
+    width: 70px;   /* aumentei o tamanho */
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem; /* aumenta o tamanho do ícone */
+}
+
+/* Faz a cruz ficar organizada */
+.btn-cross {
+    gap: 1px; /* espaço entre os elementos verticalmente */
+}
+
+.btn-cross .d-flex button {
+    width: 70px;  /* garante que os botões laterais também sejam grandes */
+    height: 70px;
+}
+.btn-cross .d-flex {
+    gap: 20px; /* aumenta o espaço entre os botões laterais */
+}
