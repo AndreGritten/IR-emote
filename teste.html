@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IR-emote Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        .logo-navbar{
+            width: 200px;
+            height: auto;
+        }
+
+        .btn-round {
+            width: 70px;   /* aumentei o tamanho */
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem; /* aumenta o tamanho do ícone */
+        }
+
+        /* Faz a cruz ficar organizada */
+        .btn-cross {
+            gap: 1px; /* espaço entre os elementos verticalmente */
+        }
+
+        .btn-cross .d-flex button {
+            width: 70px;  /* garante que os botões laterais também sejam grandes */
+            height: 70px;
+        }
+        .btn-cross .d-flex {
+            gap: 20px; /* aumenta o espaço entre os botões laterais */
+        }
+
+    </style>
+
+    
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-secondary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><img class="logo-navbar" src="assets/img/IR_-_EMOTE-noBG.png" alt="IR-emote logo"></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="#">Home</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link" href="relatorios.html">Relatórios</a>
+            </li>
+            <li class="nav-item">
+            <a class="nav-link" href="#">Sobre nós</a>
+            </li>
+        </ul>
+        </div>
+    </div>
+    </nav>
+    
+    <br>
+    <div class="container d-flex justify-content-center align-items-center">
+
+        <div class="btn-cross d-flex flex-column align-items-center">
+        <h1 class="mb-5">IR Remote Control</h1>
+
+        <!-- Botão Power (topo) -->
+            <button type="button" id="power" class="btn btn-outline-danger btn-round mb-3"><i class="bi bi-power"></i></button>
+        
+        <!-- Linha do Volume + e - (laterais) -->
+        <div class="d-flex justify-content-between w-100 mb-3">
+            <button type="button" id="volume-down" class="btn btn-outline-info btn-round me-3"><i class="bi bi-dash-lg"></i></button>
+            <button type="button" id="volume-up" class="btn btn-outline-info btn-round ms-3"><i class="bi bi-plus-lg"></i></button>
+        </div>
+        <div class="d-flex justify-content-between w-100 mb-3">
+            <button type="button" id="zoom-out" class="btn btn-outline-success btn-round me-3"><i class="bi bi-zoom-out"></i></button>
+            <button type="button" id="zoom-in" class="btn btn-outline-success btn-round ms-3"><i class="bi bi-zoom-in"></i></i></button>
+        </div>
+
+        <!-- Botão Freeze (baixo) -->
+        <button type="button" id="freeze" class="btn btn-outline-primary btn-round mt-3"><i class="bi bi-snow3"></i></button>
+        <!-- Span para atualizar via innerHTML -->
+        <span id="status" class="mt-5"></span>
+        </div>
+    </div>
+
+    <script>
+        let projetorLigado = false;
+
+        let telaCongelada = false;
+
+        let volume = 50; // valor inicial
+        const maxVolume = 100;
+        const minVolume = 0;
+
+        let zoom = 50;
+        const maxZoom = 100;
+        const minZoom = 0;
+
+        // Botão POWER
+        document.getElementById("power").addEventListener("click", function() {
+            projetorLigado = !projetorLigado; // alterna ligado/desligado
+
+            if (!projetorLigado) {
+                telaCongelada = false;
+            }
+
+            if (projetorLigado) {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-success" role="alert">Projetor ligado!</div>';
+            } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-danger" role="alert">Projetor desligado!</div>';
+            }
+        });
+
+        // Botão FREEZE
+        document.getElementById("freeze").addEventListener("click", function() {
+            telaCongelada = !telaCongelada
+            if(projetorLigado){
+                if (telaCongelada) {
+                    document.getElementById("status").innerHTML =
+                        '<div class="alert alert-success" role="alert">Tela congelada!</div>';
+                } else{
+                    document.getElementById("status").innerHTML =
+                        '<div class="alert alert-danger" role="alert">Tela descongelada!</div>';
+                }
+                
+            } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-warning" role="alert">Ligue o projetor antes!</div>';
+            }
+        });
+
+        // Botão VOLUME +
+        document.getElementById("volume-up").addEventListener("click", function() {
+            if(projetorLigado){
+                if(volume < maxVolume) {
+                volume += 10;
+                if(volume > maxVolume) volume = maxVolume;
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Volume: ' + volume + '</div>';
+                } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Volume: 100</div>';
+                }
+                
+            } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-warning" role="alert">Ligue o projetor antes!</div>';
+            }
+            
+        });
+
+        // Botão VOLUME -
+        document.getElementById("volume-down").addEventListener("click", function() {
+            if(projetorLigado){
+                if(volume > minVolume) {
+                volume -= 10;
+                if(volume < minVolume) volume = minVolume;
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Volume: ' + volume + '</div>';
+                } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Volume: 0</div>';
+                }
+                
+            } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-warning" role="alert">Ligue o projetor antes!</div>';
+            }
+        });
+
+        document.getElementById("zoom-in").addEventListener("click", function() {
+            if(projetorLigado){
+                if (zoom < maxZoom) {
+                zoom += 10;
+                if (zoom > maxZoom) zoom = maxVolume;
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Zoom: ' + zoom + '%</div>'
+                } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Zoom: 100%</div>';
+                }
+                
+            } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-warning" role="alert">Ligue o projetor antes!</div>';
+            }
+            
+        })
+        document.getElementById("zoom-out").addEventListener("click", function() {
+            if(projetorLigado){
+                if (zoom > minZoom) {
+                zoom -= 10;
+                if (zoom < minZoom) zoom = minVolume;
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Zoom: ' + zoom + '%</div>'
+                } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-info" role="alert">Zoom: 0%</div>';
+                }
+                
+            } else {
+                document.getElementById("status").innerHTML =
+                    '<div class="alert alert-warning" role="alert">Ligue o projetor antes!</div>';
+            }
+            
+        })
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>
