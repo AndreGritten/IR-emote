@@ -20,6 +20,9 @@ struct IRSignal {
 
 std::vector<IRSignal> irSignals;
 
+unsigned long lastSendTime = 0;  // tempo do último envio IR
+
+
 void setup() {
   Serial.begin(115200);
   WiFi.softAP(ssid, password);
@@ -148,12 +151,27 @@ void handleSendIR() {
   size_t id = server.arg("id").toInt();
   
   if (id < irSignals.size()) {
+    // Desativa temporariamente o receptor para não captar o próprio sinal
+    IrReceiver.stop();
+    delay(50);
+
+    // Envia o sinal IR armazenado
     IrSender.sendNEC(irSignals[id].address, irSignals[id].command, 2);
+
+    delay(200);  // tempo pra terminar o envio
+
+    // Religa o receptor IR
+    IrReceiver.start();
+
+    // Guarda o momento em que o sinal foi enviado
+    lastSendTime = millis();
   }
-  
+
+  // Redireciona de volta à página
   server.sendHeader("Location", "/");
   server.send(303);
 }
+
 
 void handleStyleCSS() {
   String css = R"(
