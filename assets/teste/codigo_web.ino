@@ -22,8 +22,13 @@ std::vector<IRSignal> irSignals;
 
 unsigned long lastSendTime = 0;  // tempo do último envio IR
 
+bool captureMode = false;  // controla se estamos aguardando um sinal real
+String pendingName = "";   // guarda o nome que o usuário digitou
 
 void setup() {
+  
+  irSignals.clear(); // limpa lista ao iniciar
+
   Serial.begin(115200);
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
@@ -52,48 +57,60 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  
+
   if (IrReceiver.decode()) {
-    IRSignal signal = {
-      "New Signal",
-      IrReceiver.decodedIRData.address,
-      IrReceiver.decodedIRData.command
-    };
-    
-    irSignals.push_back(signal);
-    saveIRSignals();
-    
+    // só processa se estivermos capturando e o código for válido
+    if (captureMode && IrReceiver.decodedIRData.address != 0 && IrReceiver.decodedIRData.command != 0) {
+      IRSignal signal = {
+        pendingName,
+        IrReceiver.decodedIRData.address,
+        IrReceiver.decodedIRData.command
+      };
+
+      irSignals.push_back(signal);
+      saveIRSignals();
+
+      Serial.println("✅ Sinal IR capturado com sucesso!");
+      Serial.print("Nome: "); Serial.println(signal.name);
+      Serial.print("Endereço: 0x"); Serial.print(signal.address, HEX);
+      Serial.print("  Comando: 0x"); Serial.println(signal.command, HEX);
+
+      captureMode = false; // desativa captura até o próximo clique
+      pendingName = "";
+    }
+
     IrReceiver.resume();
   }
 }
 
+
 void handleRoot() {
-  String page = R"(
+  String page = R"====(
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Web-Based IR Remote Control Interface: Capture, Store, and Send IR Signals</title>
-    <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Web-Based IR Remote Control Interface</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>IR-emote - realize operações via infravermelho</h1>
-        </header>
-        <main>
-            <section class="capture-form">
-                <h2>Capturar Novo Sinal</h2>
-                <form action="/capture" method="post">
-                    <input type="text" name="name" placeholder="Informe o nome do sinal" required>
-                    <button type="submit" class="btn btn-primary">Capturar</button>
-                </form>
-            </section>
-            <section class="signal-list">
-                <h2>Sinais IR Capturados</h2>
-                <ul>
-)";
+  <div class="container">
+    <header>
+      <h1>IR-emote - realize operações via infravermelho</h1>
+    </header>
+    <main>
+      <section class="capture-form">
+        <h2>Capturar Novo Sinal</h2>
+        <form onsubmit="startCapture(event)">
+          <input type="text" id="signalName" placeholder="Informe o nome do sinal" required>
+          <button type="submit" class="btn btn-primary">Capturar</button>
+        </form>
+      </section>
+      <section class="signal-list">
+        <h2>Sinais IR Capturados</h2>
+        <ul>
+)====";
 
   for (size_t i = 0; i < irSignals.size(); i++) {
     page += "<li class='signal-item'>";
@@ -103,37 +120,93 @@ void handleRoot() {
     page += "<span>Comando: 0x" + String(irSignals[i].command, HEX) + "</span>";
     page += "</div>";
     page += "<div class='signal-actions'>";
-    page += "<a href='/send?id=" + String(i) + "' class='btn btn-send'>Enviar Sinal</a>";
+    page += "<button class='btn btn-send' onclick='sendSignal(" + String(i) + ")'>Enviar Sinal</button>";
     page += "<a href='/delete?id=" + String(i) + "' class='btn btn-delete'>Excluir</a>";
     page += "</div></li>";
   }
 
-  page += R"(
-                </ul>
-            </section>
-        </main>
-        <footer>
-            <p>&copy; 2025 Interface ESP32: Capture, Armazene e Envie Sinais IR. Por André Gritten, Djames Renunza e Mateus Furtado</p>
-        </footer>
-    </div>
+  page += R"====(
+        </ul>
+      </section>
+    </main>
+    <footer>
+      <p>&copy; 2025 Interface ESP32: Capture, Armazene e Envie Sinais IR. Por André Gritten, Djames Renunza e Mateus Furtado</p>
+    </footer>
+  </div>
+
+  <script>
+    async function startCapture(event) {
+      event.preventDefault();
+      const name = document.getElementById("signalName").value;
+      if (!name) return alert("Informe um nome para o sinal!");
+      try {
+        const response = await fetch(`/capture?name=${encodeURIComponent(name)}`, { method: "GET" });
+        const text = await response.text();
+        alert(text);
+      } catch (error) {
+        alert("Erro ao iniciar captura.");
+        console.error(error);
+      }
+    }
+
+    async function sendSignal(id) {
+      try {
+        const response = await fetch(`/send?id=${id}`);
+        if (response.ok) {
+          console.log("Sinal enviado com sucesso:", id);
+        } else {
+          console.error("Erro ao enviar sinal:", id);
+        }
+      } catch (error) {
+        console.error("Falha na conexão:", error);
+      }
+    }
+  </script>
 </body>
 </html>
-  )";
-  
-  server.send(200, "text/html", page);
+)====";
+
+server.send(200, "text/html", page);
 }
 
 void handleCaptureIR() {
-  String name = server.arg("name");
-  
-  if (name.length() > 0) {
-    irSignals.back().name = name;
-    saveIRSignals();
+  if (!server.hasArg("name")) {
+    server.send(400, "text/plain", "Erro: nome do sinal ausente.");
+    return;
   }
-  
-  server.sendHeader("Location", "/");
-  server.send(303);
+
+  String name = server.arg("name");
+  server.send(200, "text/plain", "Aponte o controle para o sensor e pressione o botão desejado...");
+
+  unsigned long startTime = millis();
+  bool received = false;
+
+  while (millis() - startTime < 5000) {  // aguarda até 5 segundos
+    if (IrReceiver.decode()) {
+      uint16_t address = IrReceiver.decodedIRData.address;
+      uint16_t command = IrReceiver.decodedIRData.command;
+
+      // Só grava se for um sinal válido
+      if (command != 0 || address != 0) {
+        irSignals.push_back({name, address, command});
+        Serial.printf("Sinal capturado: %s | Addr: 0x%X | Cmd: 0x%X\n", name.c_str(), address, command);
+        received = true;
+      }
+
+      IrReceiver.resume();
+      break;
+    }
+    delay(100);
+  }
+
+  if (!received) {
+    server.send(200, "text/plain", "Nenhum sinal IR detectado. Tente novamente.");
+  } else {
+    server.send(200, "text/plain", "Sinal capturado com sucesso!");
+  }
 }
+
+
 
 void handleDeleteIR() {
   size_t id = server.arg("id").toInt();
@@ -167,9 +240,7 @@ void handleSendIR() {
     lastSendTime = millis();
   }
 
-  // Redireciona de volta à página
-  server.sendHeader("Location", "/");
-  server.send(303);
+  server.send(200, "text/plain", "OK");
 }
 
 
