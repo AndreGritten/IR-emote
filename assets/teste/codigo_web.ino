@@ -101,7 +101,7 @@ void handleRoot() {
     page += "</div>";
     page += "<div class='signal-actions'>";
     page += "<a href='/send?id=" + String(i) + "' class='btn btn-send'>Enviar Sinal</a>";
-    page += "<a href='/delete?id=" + String(i) + "' class='btn btn-delete'>Exckuir</a>";
+    page += "<a href='/delete?id=" + String(i) + "' class='btn btn-delete'>Excluir</a>";
     page += "</div></li>";
   }
 
