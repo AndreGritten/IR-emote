@@ -12,6 +12,13 @@ WebServer server(80);
 #define IR_RECEIVE_PIN 15
 #define IR_SEND_PIN 4
 
+#define LED_BLUE_PIN 5
+#define LED_RED_PIN 23
+
+unsigned long lastBlink = 0;
+bool blueState = false;
+
+
 struct IRSignal {
   String name;
   uint16_t address;
@@ -28,6 +35,13 @@ String pendingName = "";   // guarda o nome que o usuário digitou
 void setup() {
   
   irSignals.clear(); // limpa lista ao iniciar
+
+  pinMode(LED_BLUE_PIN, OUTPUT);
+  pinMode(LED_RED_PIN, OUTPUT);
+
+  digitalWrite(LED_BLUE_PIN, HIGH); // liga azul ao iniciar
+  digitalWrite(LED_RED_PIN, LOW);
+
 
   Serial.begin(115200);
   WiFi.softAP(ssid, password);
@@ -57,6 +71,14 @@ void setup() {
 
 void loop() {
   server.handleClient();
+
+  // Pisca LED azul a cada 700ms
+  if (millis() - lastBlink >= 700) {
+      blueState = !blueState;
+      digitalWrite(LED_BLUE_PIN, blueState);
+      lastBlink = millis();
+  }
+
 
   if (IrReceiver.decode()) {
     // só processa se estivermos capturando e o código for válido
@@ -224,6 +246,8 @@ void handleSendIR() {
   size_t id = server.arg("id").toInt();
   
   if (id < irSignals.size()) {
+    digitalWrite(LED_RED_PIN, HIGH); // acende vermelho ao enviar
+
     // Desativa temporariamente o receptor para não captar o próprio sinal
     IrReceiver.stop();
     delay(50);
@@ -232,6 +256,7 @@ void handleSendIR() {
     IrSender.sendNEC(irSignals[id].address, irSignals[id].command, 2);
 
     delay(200);  // tempo pra terminar o envio
+    digitalWrite(LED_RED_PIN, LOW); // apaga depois
 
     // Religa o receptor IR
     IrReceiver.start();
